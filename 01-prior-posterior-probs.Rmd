@@ -1,0 +1,84 @@
+---
+title: "01- Prior & Posterior Probability Given by a Classifier"
+author: "Yao Siyuan"
+date: "August 10, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Oversampling
+
+Given an imbalanced sample set, we can resample the set to create a balance one,
+which will bring some extra benefits for most classifiers. 
+
+However, it brings some problems for model prediction for the predicted 
+probability changes after the resampling. If we really cares the probabilities,
+we need transform the posterior probability to the prior probability.
+
+This page will focus on this topic.
+
+## Methodology
+
+Denote the original ratio of the minority class as $r_1$, the ratio after 
+oversampling as $r_2$, the number of minorities as $x$, and the number of 
+mojorities $y$.
+
+As for oversampling, we use simple random sampling method with replacement to 
+draw some minorities to expand the size of majority sample to $k$ times. Thus
+we have the following equation:
+
+$$ \frac{x}{x + y} = r_1 $$
+$$ \frac{kx}{kx + y} = r_2 $$
+
+By solving the equations, we can get
+
+$$ k = \frac{r_2(1 - r_1)}{r_1(1 - r_2)} $$
+
+For the same reason, if a sample's prior probability to be a minority before 
+oversampling is $p_1$, and the posterior probability to be a minority after
+oversampling is $p_2$, then, the same relation holds,
+
+$$ k = \frac{p_2(1 - p_1)}{p_1(1 - p_2)} $$
+
+By solving the equation, we can get
+
+$$ p_1 = \frac{p_2}{k(1 - p_2) + p_2} $$
+
+## R Function
+
+The R function for the adjustment is as following.
+
+```{r}
+prior_prob <- function(posterior, r1 = 0.05, r2 = 0.5) {
+    k <- r2 * (1 - r1) / (r1 - r1 * r2)
+    posterior / (k * (1 - posterior) + posterior)
+}
+```
+
+Some example:
+
+1. If $r_1$ = 5%, $r_2$ = 50%, then
+
+        $p_2$ = 30% implies $p_1$ = `r prior_prob(0.3)`
+
+        $p_2$ = 50% implies $p_1$ = `r prior_prob(0.5)`
+
+        $p_2$ = 70% implies $p_1$ = `r prior_prob(0.7)`
+
+2. Given $r_1$ = 8%, $r_2$ = 50%, the curve below shows the relationship 
+between the posterior probability and the prior probability.
+
+```{r}
+posterior <- seq(0, 1, by = 0.01)
+prior <- prior_prob(posterior, r1 = 0.08, r2 = 0.5)
+
+plot(posterior, prior, type = 'l',
+     xlab = 'Posterior Probability',
+     ylab = 'Prior Probability', 
+     main = 'Prior vs Posterior Probability',
+     sub = 'r1 = 8%, r2 = 50%')
+```
+
